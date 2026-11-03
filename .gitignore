@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+TestResults/
+*.nupkg
+
+# IDEs
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+
+# Local config
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
