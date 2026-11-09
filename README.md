@@ -2,29 +2,39 @@
 
 > **Everything that runs a sandbox:** the `envmgr` daemon on the Proxmox box, the in-VM `harness`, the `SandboxClient` library that `api` uses, the Proxmox VM template and the scenario images.
 
-Part of [**kubernetes-learning-platform**](https://github.com/kubernetes-learning-platform/docs), an AI tutor with a live Kubernetes lab. Start at the [docs hub](https://github.com/kubernetes-learning-platform/docs) for the big picture.
+Part of [**kubernetes-learning-platform**](https://github.com/kubernetes-learning-platform/docs), a live Kubernetes lab with an optional AI helper. Start at the [docs hub](https://github.com/kubernetes-learning-platform/docs) for the big picture.
 
 **Owner:** Filip · **Status:** planned layout, scaffolding lands in M1.
 
 ---
 
-## 🧭 How it fits
+## 🧭 What this repo does
 
-```mermaid
-flowchart LR
-    api["api<br/>Hetzner box<br/>uses SandboxClient"]
-    envmgr["envmgr<br/>Proxmox host"]
-    harness["harness<br/>inside the sandbox VM"]
-    k3d["k3d cluster<br/>cp, w1, w2"]
-    mq["RabbitMQ<br/>Hetzner box"]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/sandbox-dark.svg">
+  <img src="assets/sandbox-light.svg" width="100%" alt="On the left, envmgr on the Proxmox host: a gRPC service that api calls, a relay, a reconciler, queue consumers fed by RabbitMQ, and providers that clone VMs. On the right, a sandbox VM: the harness connects to the relay over WebSocket, runs kubectl against the three k3d nodes cp, w1 and w2, and its watchers turn cluster events into topology diffs.">
+</picture>
 
-    api -->|"gRPC over the WireGuard mesh"| envmgr
-    envmgr -->|"start + teardown requests"| mq
-    harness -->|"WebSocket, isolated bridge"| envmgr
-    harness -->|"kubectl, docker, watches"| k3d
-```
+Every learner gets their own disposable computer: a virtual machine with a real 3-node Kubernetes cluster inside. This repo is everything that creates that VM, talks to it, and throws it away again.
 
-Every session gets its own disposable sandbox: a VM on the Proxmox box (a linked clone of one VM template) running a 3-node k3d cluster. `api` runs on the Hetzner box and never talks to the VM directly. `envmgr` takes start requests from a RabbitMQ work queue when it has room, and relays frames between `api` and the `harness` across the WireGuard mesh. Secrets and the LLM key never enter the VM. See [ADR 0001](https://github.com/kubernetes-learning-platform/docs/blob/main/adr/0001-hosting-and-harness-transport.md) for why it's split this way, and [ADR 0002](https://github.com/kubernetes-learning-platform/docs/blob/main/adr/0002-learner-driven-scenarios-and-scale-target.md) for the queue.
+It builds two programs and one library:
+
+- **`envmgr`** runs on the machine that hosts the VMs, outside of them. It owns their lifecycle: it keeps a few booted and ready, hands one out when a session starts, deletes it when the session ends, and never runs more than the machine's memory allows. It also passes every message between `api` and the VM.
+- **`harness`** runs inside every VM. It is `api`'s hands and eyes in there: it runs commands, provides the terminal, reads and writes files, breaks things on purpose when a scenario calls for it, checks whether a scenario step is solved, and watches the cluster so it can report every change.
+- **`SandboxClient`** is the library `api` uses to talk to a sandbox. It hides the connection behind one interface, and includes a fake sandbox that plays a scripted cluster, so `api` and `web` can be developed without any VM.
+
+The split has a reason. The learner gets a real shell in the VM, so the VM is treated as untrusted. It holds no secrets, it can reach exactly one address (envmgr's harness endpoint), and it can be destroyed at any time without losing the session, because the session lives in `api`.
+
+### Follow one sandbox
+
+1. A start request arrives from the work queue. The **consumers** take it only when there is room.
+2. The **reconciler** and the **provider** supply a VM: one from the warm pool, or a fresh linked clone of the template. cloud-init gives a clone its address and a one-time token.
+3. The VM boots and its cluster comes up. The **harness** dials envmgr's WebSocket endpoint and proves who it is with the token.
+4. `api` opens a `Connect` stream on envmgr's **gRPC service**. The **relay** pairs that stream with the harness connection.
+5. Frames now flow both ways: commands and keystrokes in, output and cluster changes out. The **watchers** turn Kubernetes and Docker events into one topology snapshot, then diffs.
+6. When the session ends, a teardown request deletes the VM, and the reconciler boots a replacement for the pool.
+
+`api` runs on the Hetzner box and never talks to the VM directly. See [ADR 0001](https://github.com/kubernetes-learning-platform/docs/blob/main/adr/0001-hosting-and-harness-transport.md) for why it's split this way, and [ADR 0002](https://github.com/kubernetes-learning-platform/docs/blob/main/adr/0002-learner-driven-scenarios-and-scale-target.md) for the queue. The whole system at a glance is in the [docs hub](https://github.com/kubernetes-learning-platform/docs#readme).
 
 ## 🧩 Projects
 

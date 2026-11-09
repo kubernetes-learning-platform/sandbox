@@ -1,6 +1,6 @@
 # Copilot instructions: sandbox
 
-This repo runs the disposable per-session lab of kubernetes-learning-platform, an AI tutor with a live Kubernetes lab. The full design is in the `docs` repo (ARCHITECTURE.md §4.2–4.3, §10).
+This repo runs the disposable per-session lab of kubernetes-learning-platform, a live Kubernetes lab with an optional AI helper. The full design is in the `docs` repo (ARCHITECTURE.md §4.2–4.3, §10).
 
 ## Projects (.NET 10)
 - `KubernetesLearning.EnvManager`: daemon under systemd on the Proxmox host. Proxmox and Docker (dev) providers, one reconcile loop (warm pool, capacity cap, lifetime limit, re-adoption), a RabbitMQ consumer, the harness relay, and one gRPC service on the mesh.
