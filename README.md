@@ -136,8 +136,9 @@ No KVM needed. Run `envmgr` with `dotnet run` and `Provider=Docker`, plus Rabbit
 A tag publishes:
 - `envmgr` and `harness` binaries for **linux-x64 and linux-arm64** → GitHub Releases
 - `KubernetesLearning.SandboxClient` → GitHub Packages
-- a new qcow2 sandbox template (x64) with the matching harness baked in, built by Packer through `platform`'s `sandbox-template.yml`. It runs on the self-hosted runner on the course VM, because it needs KVM, and the template stays on the VM where the provider picks it up.
 - the scenario images (`demo-web`, `traffic-probe`), multi-arch → GHCR
+
+The qcow2 sandbox template (x64), with the matching harness baked in, is built by Packer through `platform`'s `sandbox-template.yml`. It needs KVM, so it runs on the self-hosted runner on the course VM. This repo is public and can't use that runner, so the private deploy repo starts the build. The template stays on the VM, where the provider picks it up.
 
 Nothing is downloaded at runtime: every image the cluster needs is baked into the sandbox template.
 

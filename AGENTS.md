@@ -62,7 +62,7 @@ Run them before saying a change is done. Local development needs no KVM: run `en
 
 ## Releases and dependencies
 
-- A tag in this repo publishes the binaries, the `SandboxClient` package, the sandbox template and the scenario images.
+- A tag in this repo publishes the binaries, the `SandboxClient` package and the scenario images. The sandbox template is built from the private deploy repo, because public repos can't use the self-hosted runner.
 - New `contracts` versions arrive as bot commits, `build(deps): bump contracts to X.Y.Z`. If the build fails after a bump, the bot opens a PR here instead; fix the code in that PR.
 
 ## Commits, branches and PRs
@@ -72,7 +72,8 @@ Run them before saying a change is done. Local development needs no KVM: run `en
 - **Types:** `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `style`. Add `!` for a breaking change.
 - **Branches:** use the name in the `Branch:` line of the issue being worked on. Don't make one up. `gh issue develop <number> --name <branch> --checkout` creates it linked to the issue.
 - **Where changes land:** while the repo is still empty, documentation goes straight to `main`. From the setup issues on (sandbox#1), every change goes through a PR from the issue's branch.
-- **PRs:** the title follows the commit format, at most 72 characters; it becomes the squash commit on `main`. The description is one or two plain sentences, plus `Closes #<number>`. Only Filip merges.
+- **PRs:** the title follows the commit format, at most 72 characters; it becomes the squash commit on `main`. The description is one or two plain sentences, plus `Closes #<number>`. Merging needs one approval from someone other than the author. Filip is requested as reviewer on every PR (`.github/CODEOWNERS`), and the author is assigned automatically. Only Filip merges.
+- **Public repo:** everything committed is public at once. Never commit secrets, real `.env` files or personal data; push protection only catches known token formats.
 
 ## Keep docs in sync
 
