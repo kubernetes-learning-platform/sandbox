@@ -47,7 +47,7 @@ The solution is `KubernetesLearning.Sandbox.slnx`, with SDK 10.0 pinned in `glob
 - `../platform/lint/sync.sh --check .`, with `platform` at the commit in `.lint-sync`
 - the harness as Native AOT: `dotnet publish src/KubernetesLearning.Harness -c Release -r <rid>`. CI publishes linux-x64 and linux-arm64 on native runners; AOT can't cross-compile from macOS, so locally use `-r osx-arm64` to check the AOT build.
 
-CI (`.github/workflows/ci.yml`) reports `ci / .NET checks` (required in the `main` ruleset), `Native AOT (linux-x64)` and `Native AOT (linux-arm64)`. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
+CI (`.github/workflows/ci.yml`) reports `ci / .NET checks`, `Native AOT (linux-x64)` and `Native AOT (linux-arm64)`, all required in the `main` ruleset. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
 
 **Lint configs.** `.editorconfig`, `Directory.Build.props` and `.lint-sync` are copies from `platform/lint/`: every warning is an error, `AnalysisLevel=latest-recommended`, and code style is enforced on build and by `dotnet format`. Don't edit them here; change `platform/lint/` instead, and CI fails a hand edit. Build settings for this repo go in the `.csproj` files or a nested `Directory.Build.props` that imports the root one. They were made with `lint/sync.sh --dotnet`. Projects fresh from `dotnet new` don't pass as generated: run `dotnet format` once, because the templates ship CRLF line endings and a byte order mark, then seal the template's types and add their access modifiers.
 
