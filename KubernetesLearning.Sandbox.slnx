@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KubernetesLearning.EnvManager/KubernetesLearning.EnvManager.csproj" />
+    <Project Path="src/KubernetesLearning.Harness/KubernetesLearning.Harness.csproj" />
+    <Project Path="src/KubernetesLearning.SandboxClient/KubernetesLearning.SandboxClient.csproj" />
+    <Project Path="src/KubernetesLearning.Sbx/KubernetesLearning.Sbx.csproj" />
+  </Folder>
+</Solution>

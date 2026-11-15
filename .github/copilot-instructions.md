@@ -29,6 +29,7 @@ This repo runs the disposable per-session lab of kubernetes-learning-platform, a
 ## Project-wide rules
 - PR titles are Conventional Commits (`feat: short description`), one line, at most 72 characters, no trailing period.
 - Files are UTF-8 with LF line endings.
+- CI runs `platform`'s `dotnet-ci` (lint copies, format check, Release build) and publishes the harness as Native AOT for linux-x64 and linux-arm64. There are no tests yet.
 
 ## Don't
 - Don't comment on formatting that `dotnet format` or `.editorconfig` handles.
