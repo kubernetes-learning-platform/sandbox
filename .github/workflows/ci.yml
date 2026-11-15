@@ -3,8 +3,6 @@ name: ci
 # Runs platform's .NET checks and publishes the harness as Native AOT for both architectures.
 on:
   pull_request:
-  push:
-    branches: [main]
 
 permissions: {}
 
