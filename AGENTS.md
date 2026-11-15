@@ -32,7 +32,7 @@ sandbox/
 ├── images/
 │   ├── base/                              # Packer (QEMU builder) → the qcow2 sandbox template
 │   └── scenarios/                         # demo-web, traffic-probe
-├── Directory.Build.props
+├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
 └── .github/workflows/                     # call platform's reusable workflows
 ```
 
@@ -45,6 +45,8 @@ Not set up yet; sandbox#1 adds the exact commands here. The checks CI will run:
 - the harness published as Native AOT for linux-x64 and linux-arm64. AOT can't cross-compile from macOS, so this runs on Linux.
 
 Run them before saying a change is done. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
+
+**Lint configs.** `.editorconfig`, `Directory.Build.props` and `.lint-sync` are copies from `platform/lint/`: every warning is an error, `AnalysisLevel=latest-recommended`, and code style is enforced on build and by `dotnet format`. Don't edit them here; change `platform/lint/` instead, and CI fails a hand edit. Build settings for this repo go in the `.csproj` files or a nested `Directory.Build.props` that imports the root one. sandbox#1 makes the first copy with `lint/sync.sh --dotnet`. Projects fresh from `dotnet new` don't pass as generated: run `dotnet format` once, because the templates ship CRLF line endings and a byte order mark, then seal the template's types and add their access modifiers.
 
 ## Code rules
 
@@ -64,6 +66,7 @@ Run them before saying a change is done. Local development needs no KVM: run `en
 
 - A tag in this repo publishes the binaries, the `SandboxClient` package and the scenario images. The sandbox template is built from the private deploy repo, because public repos can't use the self-hosted runner.
 - New `contracts` versions arrive as bot commits, `build(deps): bump contracts to X.Y.Z`. If the build fails after a bump, the bot opens a PR here instead; fix the code in that PR.
+- New lint configs arrive the same way, as `chore: sync lint configs` after a change to `platform/lint/`. If the new rules break the build, the bot opens a PR instead; fix the code in that PR.
 
 ## Commits, branches and PRs
 
@@ -72,7 +75,7 @@ Run them before saying a change is done. Local development needs no KVM: run `en
 - **Types:** `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `style`. Add `!` for a breaking change.
 - **Branches:** use the name in the `Branch:` line of the issue being worked on. Don't make one up. `gh issue develop <number> --name <branch> --checkout` creates it linked to the issue.
 - **Where changes land:** while the repo is still empty, documentation goes straight to `main`. From the setup issues on (sandbox#1), every change goes through a PR from the issue's branch.
-- **PRs:** the title follows the commit format, at most 72 characters; it becomes the squash commit on `main`. The description is one or two plain sentences, plus `Closes #<number>`. Merging needs one approval from someone other than the author. Filip is requested as reviewer on every PR (`.github/CODEOWNERS`), and the author is assigned automatically. Only Filip merges.
+- **PRs:** the title follows the commit format, at most 72 characters; it becomes the squash commit on `main`. The description is one or two plain sentences, plus `Closes #<number>`. Merging needs one approval from someone other than the author, and the branch must be up to date with `main`. Filip is requested as reviewer on every PR (`.github/CODEOWNERS`), and the author is assigned automatically. Only Filip merges.
 - **Public repo:** everything committed is public at once. Never commit secrets, real `.env` files or personal data; push protection only catches known token formats.
 
 ## Keep docs in sync

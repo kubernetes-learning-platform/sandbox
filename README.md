@@ -119,7 +119,7 @@ sandbox/
 │   └── scenarios/                         # custom scenario images, until the `scenarios` repo exists
 │       ├── demo-web/                      # v1, v2; replies with its pod name
 │       └── traffic-probe/                 # tiny curl loop used by the traffic probe
-├── Directory.Build.props
+├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
 └── .github/workflows/                     # ci.yml, release.yml → platform workflows
 ```
 
