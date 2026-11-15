@@ -16,7 +16,7 @@ Everything that runs a sandbox for kubernetes-learning-platform, a live Kubernet
 Providers: `DockerProvider` (Docker-in-Docker + k3d; privileged in dev, under Sysbox on the course VM) and `QemuProvider` (a QEMU/libvirt VM per session, used if the course VM supports nested virtualization). Which one runs on the VM is OPEN until platform#6.
 
 - **Owner:** Filip.
-- **Status:** planned layout. sandbox#1 scaffolds the solution.
+- **Status:** scaffolded (sandbox#1). The four projects are empty and build; there are no tests yet.
 - **Design:** `README.md` here, ARCHITECTURE §4.2, §4.3 and §10, and ADR 0003 in the `docs` repo. Where they disagree, the `docs` repo wins.
 
 ## Layout
@@ -24,29 +24,32 @@ Providers: `DockerProvider` (Docker-in-Docker + k3d; privileged in dev, under Sy
 ```
 sandbox/
 ├── src/
-│   ├── KubernetesLearning.EnvManager/     # Grpc/, Relay/, Queue/, Providers/{Qemu,Docker}/, Lifecycle/
-│   ├── KubernetesLearning.Harness/        # Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
+│   ├── KubernetesLearning.EnvManager/     # envmgr: Grpc/, Relay/, Queue/, Providers/{Qemu,Docker}/, Lifecycle/
+│   ├── KubernetesLearning.Harness/        # harness, Native AOT: Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
 │   ├── KubernetesLearning.SandboxClient/  # ISandboxSession, SandboxSession, Fakes/
-│   └── KubernetesLearning.Sbx/            # dev CLI
-├── tests/                                 # EnvManager.Tests, Harness.Tests, Integration.Tests
+│   └── KubernetesLearning.Sbx/            # sbx, the dev CLI
+├── tests/                                 # later: EnvManager.Tests, Harness.Tests, Integration.Tests
 ├── images/
 │   ├── base/                              # Packer (QEMU builder) → the qcow2 sandbox template
 │   └── scenarios/                         # demo-web, traffic-probe
+├── KubernetesLearning.Sandbox.slnx
+├── global.json                            # SDK 10.0
 ├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
-└── .github/workflows/                     # call platform's reusable workflows
+└── .github/workflows/                     # ci.yml: platform's dotnet-ci, plus the harness AOT publish
 ```
 
 ## Build and check
 
-Not set up yet; sandbox#1 adds the exact commands here. The checks CI will run:
+The solution is `KubernetesLearning.Sandbox.slnx`, with SDK 10.0 pinned in `global.json`. There are no tests yet. Before saying a change is done, run what CI runs:
 
 - `dotnet format --verify-no-changes`
-- `dotnet build` and `dotnet test`
-- the harness published as Native AOT for linux-x64 and linux-arm64. AOT can't cross-compile from macOS, so this runs on Linux.
+- `dotnet build -c Release`
+- `../platform/lint/sync.sh --check .`, with `platform` at the commit in `.lint-sync`
+- the harness as Native AOT: `dotnet publish src/KubernetesLearning.Harness -c Release -r <rid>`. CI publishes linux-x64 and linux-arm64 on native runners; AOT can't cross-compile from macOS, so locally use `-r osx-arm64` to check the AOT build.
 
-Run them before saying a change is done. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
+CI (`.github/workflows/ci.yml`) reports `ci / .NET checks` (required in the `main` ruleset), `Native AOT (linux-x64)` and `Native AOT (linux-arm64)`. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
 
-**Lint configs.** `.editorconfig`, `Directory.Build.props` and `.lint-sync` are copies from `platform/lint/`: every warning is an error, `AnalysisLevel=latest-recommended`, and code style is enforced on build and by `dotnet format`. Don't edit them here; change `platform/lint/` instead, and CI fails a hand edit. Build settings for this repo go in the `.csproj` files or a nested `Directory.Build.props` that imports the root one. sandbox#1 makes the first copy with `lint/sync.sh --dotnet`. Projects fresh from `dotnet new` don't pass as generated: run `dotnet format` once, because the templates ship CRLF line endings and a byte order mark, then seal the template's types and add their access modifiers.
+**Lint configs.** `.editorconfig`, `Directory.Build.props` and `.lint-sync` are copies from `platform/lint/`: every warning is an error, `AnalysisLevel=latest-recommended`, and code style is enforced on build and by `dotnet format`. Don't edit them here; change `platform/lint/` instead, and CI fails a hand edit. Build settings for this repo go in the `.csproj` files or a nested `Directory.Build.props` that imports the root one. They were made with `lint/sync.sh --dotnet`. Projects fresh from `dotnet new` don't pass as generated: run `dotnet format` once, because the templates ship CRLF line endings and a byte order mark, then seal the template's types and add their access modifiers.
 
 ## Code rules
 

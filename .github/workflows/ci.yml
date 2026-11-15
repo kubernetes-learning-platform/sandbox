@@ -1,0 +1,56 @@
+name: ci
+
+# Runs platform's .NET checks and publishes the harness as Native AOT for both architectures.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: kubernetes-learning-platform/platform/.github/workflows/dotnet-ci.yml@main
+
+  aot:
+    name: Native AOT (${{ matrix.rid }})
+    strategy:
+      matrix:
+        include:
+          - rid: linux-x64
+            runner: ubuntu-24.04
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install the native toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang zlib1g-dev
+
+      - name: Publish the harness
+        env:
+          RID: ${{ matrix.rid }}
+        run: dotnet publish src/KubernetesLearning.Harness --configuration Release --runtime "$RID" --output "$RUNNER_TEMP/harness"
+
+      - name: Run the harness
+        run: |
+          "$RUNNER_TEMP/harness/harness"

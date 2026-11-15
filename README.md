@@ -4,7 +4,7 @@
 
 Part of [kubernetes-learning-platform](https://github.com/kubernetes-learning-platform/docs), a live Kubernetes lab with an optional AI helper. The [docs repository](https://github.com/kubernetes-learning-platform/docs) describes the overall system.
 
-**Owner:** Filip · **Status:** planned layout, scaffolding lands in M1.
+**Owner:** Filip · **Status:** scaffolded. The four projects are empty and build in CI; there are no tests yet.
 
 ---
 
@@ -106,11 +106,11 @@ The `Connect` stream to `api` breaks when `envmgr` restarts or the stream fails.
 ```
 sandbox/
 ├── src/
-│   ├── KubernetesLearning.EnvManager/     # Grpc/, Relay/, Queue/, Providers/{Qemu,Docker}/, Lifecycle/
-│   ├── KubernetesLearning.Harness/        # Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
+│   ├── KubernetesLearning.EnvManager/     # envmgr: Grpc/, Relay/, Queue/, Providers/{Qemu,Docker}/, Lifecycle/
+│   ├── KubernetesLearning.Harness/        # harness, Native AOT: Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
 │   ├── KubernetesLearning.SandboxClient/  # ISandboxSession, SandboxSession, Fakes/
-│   └── KubernetesLearning.Sbx/            # dev CLI
-├── tests/
+│   └── KubernetesLearning.Sbx/            # sbx, the dev CLI
+├── tests/                                 # later
 │   ├── EnvManager.Tests/
 │   ├── Harness.Tests/
 │   └── Integration.Tests/                 # Docker provider + real harness + SandboxClient
@@ -119,11 +119,15 @@ sandbox/
 │   └── scenarios/                         # custom scenario images, until the `scenarios` repo exists
 │       ├── demo-web/                      # v1, v2; replies with its pod name
 │       └── traffic-probe/                 # tiny curl loop used by the traffic probe
+├── KubernetesLearning.Sandbox.slnx
+├── global.json                            # SDK 10.0
 ├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
-└── .github/workflows/                     # ci.yml, release.yml → platform workflows
+└── .github/workflows/                     # ci.yml (platform's dotnet-ci and the harness AOT publish); release.yml later
 ```
 
 ## Local development
+
+Build with `dotnet build -c Release` and check formatting with `dotnet format --verify-no-changes`. CI also publishes the harness as Native AOT for linux-x64 and linux-arm64; on a Mac, `dotnet publish src/KubernetesLearning.Harness -c Release -r osx-arm64` checks the AOT build. There are no tests yet.
 
 No KVM needed. Run `envmgr` with `dotnet run` and `Provider=Docker`, plus RabbitMQ from `platform`'s dev Compose. The harness (a linux-arm64 build on Apple Silicon) runs inside a privileged DinD container and dials `envmgr` over WebSocket, exactly as it does on the course VM. The QEMU provider is tested on the course VM itself.
 
