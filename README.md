@@ -122,7 +122,8 @@ sandbox/
 ├── KubernetesLearning.Sandbox.slnx
 ├── global.json                            # SDK 10.0
 ├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
-└── .github/workflows/                     # ci.yml (platform's dotnet-ci and the harness AOT publish); release.yml later
+└── .github/workflows/                     # ci.yml (platform's dotnet-ci and the harness AOT publish), contracts-bump.yml and
+                                           # lint-sync.yml (the update bot); release.yml later
 ```
 
 ## Local development
