@@ -4,34 +4,37 @@ Instructions for AI coding agents working in this repository. `CLAUDE.md` is a s
 
 ## What this repo is
 
-Everything that runs a sandbox for kubernetes-learning-platform, a live Kubernetes lab with an optional AI helper. Each session gets its own disposable sandbox with a 3-node k3d cluster inside.
+Everything that runs a sandbox for kubernetes-learning-platform, a live Kubernetes lab with an optional AI helper. Each session gets its own disposable sandbox: three Sysbox node machines running k3s, plus a workstation for the learner's shell and the harness (ADR 0004).
 
 | Project | What it is | Ships as |
 |---|---|---|
 | `KubernetesLearning.EnvManager` | `envmgr`: a daemon under systemd on the course VM. Sandbox lifecycle (warm pool, capacity cap, lifetime limit, re-adoption) in one reconcile loop, the RabbitMQ consumers, the harness relay, one gRPC service for `api` | Binary → GitHub Releases |
 | `KubernetesLearning.Harness` | Native AOT program inside every sandbox: exec, PTY, files, faults, scenario checks, Kubernetes and Docker watchers, topology, traffic probe | Binary → GitHub Releases, baked into the sandbox template |
 | `KubernetesLearning.SandboxClient` | The client `api` uses: `ISandboxSession`, plus `FakeSandboxSession`, a scripted cluster | NuGet → GitHub Packages |
-| `KubernetesLearning.Sbx` | Dev CLI: `sbx create \| exec \| watch \| destroy` | Not shipped |
+| `KubernetesLearning.Sbx` | Dev CLI: `sbx create \| list \| exec \| watch \| destroy` | Not shipped |
 
-Providers: `DockerProvider` (Docker-in-Docker + k3d; privileged in dev, under Sysbox on the course VM) and `QemuProvider` (a QEMU/libvirt VM per session, used if the course VM supports nested virtualization). Which one runs on the VM is OPEN until platform#6.
+Providers: `SysboxProvider` (per session a Docker network, three node containers and a workstation container, all under Sysbox; the Hetzner test VM now, and the course VM if it has no KVM), `QemuProvider` (a QEMU/libvirt VM per session with the nodes inside; the course VM if it has KVM, tested on a home Proxmox server) and `ProcessProvider` (the harness as a plain process, for tests and quick runs). Which one the course VM runs is OPEN until platform#6.
 
 - **Owner:** Filip.
 - **Status:** scaffolded (sandbox#1). The four projects are empty and build; there are no tests yet.
-- **Design:** `README.md` here, ARCHITECTURE §4.2, §4.3 and §10, and ADR 0003 in the `docs` repo. Where they disagree, the `docs` repo wins.
+- **Design:** `README.md` here, ARCHITECTURE §4.2, §4.3 and §10, and ADR 0003 and ADR 0004 in the `docs` repo. Where they disagree, the `docs` repo wins.
 
 ## Layout
 
 ```
 sandbox/
 ├── src/
-│   ├── KubernetesLearning.EnvManager/     # envmgr: Grpc/, Relay/, Queue/, Providers/{Qemu,Docker}/, Lifecycle/
+│   ├── KubernetesLearning.EnvManager/     # envmgr: Grpc/, Relay/, Queue/, Providers/{Sysbox,Qemu,Process}/, Lifecycle/
 │   ├── KubernetesLearning.Harness/        # harness, Native AOT: Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
 │   ├── KubernetesLearning.SandboxClient/  # ISandboxSession, SandboxSession, Fakes/
 │   └── KubernetesLearning.Sbx/            # sbx, the dev CLI
-├── tests/                                 # later: EnvManager.Tests, Harness.Tests, Integration.Tests
+├── tests/                                 # from Milestone 1: SandboxClient, EnvManager, Harness and Integration tests
 ├── images/
+│   ├── node/                              # the node machine: systemd, sshd, k3s
+│   ├── workstation/                       # the workstation container for the Sysbox provider
 │   ├── base/                              # Packer (QEMU builder) → the qcow2 sandbox template
 │   └── scenarios/                         # demo-web, traffic-probe
+├── scripts/                               # image builds, test VM setup
 ├── KubernetesLearning.Sandbox.slnx
 ├── global.json                            # SDK 10.0
 ├── nuget.config                           # nuget.org, plus GitHub Packages for KubernetesLearning.*
@@ -50,7 +53,7 @@ The solution is `KubernetesLearning.Sandbox.slnx`, with SDK 10.0 pinned in `glob
 - `../platform/lint/sync.sh --check .`, with `platform` at the commit in `.lint-sync`
 - the harness as Native AOT: `dotnet publish src/KubernetesLearning.Harness -c Release -r <rid>`. CI publishes linux-x64 and linux-arm64 on native runners; AOT can't cross-compile from macOS, so locally use `-r osx-arm64` to check the AOT build.
 
-CI (`.github/workflows/ci.yml`) reports `ci / .NET checks`, `Native AOT (linux-x64)` and `Native AOT (linux-arm64)`, all required in the `main` ruleset. Local development needs no KVM: run `envmgr` with `Provider=Docker` and RabbitMQ from `platform`'s dev Compose. Give Docker Desktop at least 6 GB of memory.
+CI (`.github/workflows/ci.yml`) reports `ci / .NET checks`, `Native AOT (linux-x64)` and `Native AOT (linux-arm64)`, all required in the `main` ruleset. Local development runs no VMs: run `envmgr` with `Provider=Process` for quick runs. Real sandboxes run on the team's Hetzner test VM (sandbox#11).
 
 **Lint configs.** `.editorconfig`, `Directory.Build.props` and `.lint-sync` are copies from `platform/lint/`: every warning is an error, `AnalysisLevel=latest-recommended`, and code style is enforced on build and by `dotnet format`. Don't edit them here; change `platform/lint/` instead, and CI fails a hand edit. Build settings for this repo go in the `.csproj` files or a nested `Directory.Build.props` that imports the root one. They were made with `lint/sync.sh --dotnet`. Projects fresh from `dotnet new` don't pass as generated: run `dotnet format` once, because the templates ship CRLF line endings and a byte order mark, then seal the template's types and add their access modifiers.
 
@@ -60,17 +63,18 @@ CI (`.github/workflows/ci.yml`) reports `ci / .NET checks`, `Native AOT (linux-x
 - **Kubernetes watches.** `KubernetesClient.Aot` has no watch support and no kubeconfig loading. Watch through `kubectl get <kind> -A -w --output-watch-events -o json` subprocesses.
 - **Processes.** Never call `fork()` from .NET. PTYs use `openpty` through `LibraryImport` P/Invoke.
 - **Harness transport.** WebSocket only, for every provider. The first frame is `Hello{sandboxId, token, version}`, and `envmgr` rejects anything before a valid token. Keep the harness endpoint tiny: it runs on the VM host, next to the stack, and is the only address a sandbox can reach.
-- **Isolation.** No secrets or API keys enter a sandbox; it gets only its own one-time token. Nothing is downloaded at runtime: every image is baked into the template. On the container path, sandboxes run under Sysbox, never `--privileged`.
+- **Isolation.** No secrets or API keys enter a sandbox; it gets only its own one-time token. Nothing is downloaded at runtime: every image is baked into the template. Nodes and workstations run under Sysbox, never `--privileged`. The learner has no sudo and no Docker access on the workstation, and only the `harness` user can read the token (ADR 0004 §3).
 - **api link drops.** The `Connect` stream breaks whenever `envmgr` restarts. A dropped api stream must not close the harness connection, and a reattach triggers a `SnapshotRequest`.
 - **Work queue.** Manual acks, redeliveries handled idempotently by `requestId`, the result published before the ack, never more than `Sandbox__MaxConcurrent`. Only start and teardown use the queue; the harness never touches it.
 - **Lifecycle.** libvirt (or Docker) is the source of truth for which sandboxes exist; the state dir holds only tokens and IP leases. After a restart, re-adopt running sandboxes instead of recreating them. Failed creates don't leak sandboxes, qcow2 overlays, IP leases, tokens or cloud-init seeds.
 - **Faults** go through the `FaultLedger` with their undo action. **Checks** stay cheap: they run in every sandbox every few seconds.
 - **Both architectures.** Binaries ship for linux-x64 and linux-arm64. No x64-only assumptions.
 - **Types and config.** Message types come from the `KubernetesLearning.Contracts` package, never hand-written. Config is env vars only; `README.md` lists them.
+- **Scripts** go in `scripts/`.
 
 ## Releases and dependencies
 
-- A tag in this repo publishes the binaries, the `SandboxClient` package and the scenario images. The sandbox template is built from the private deploy repo, because public repos can't use the self-hosted runner.
+- Every `feat` or `fix` merge to `main` publishes a release, versioned from the PR title like `contracts` (platform#20): the binaries, the `SandboxClient` package and the scenario images. The sandbox template is built from the private deploy repo, because public repos can't use the self-hosted runner.
 - New `contracts` versions arrive as bot commits, `build(deps): bump contracts to X.Y.Z`, from `.github/workflows/contracts-bump.yml`, which calls `platform`'s update bot on `repository_dispatch`. The bot runs `platform`'s `dotnet-ci` on the commit before it pushes to `main`, not the Native AOT publish, which runs only on PRs. If that fails, it opens a PR here instead; fix the code in that PR.
 - New lint configs arrive the same way, as `chore: sync lint configs` from `.github/workflows/lint-sync.yml` after a change to `platform/lint/`. If the new rules break the build, the bot opens a PR instead; fix the code in that PR.
 - `KubernetesLearning.Contracts` is pinned once, on one line in `Directory.Packages.props` (Central Package Management), and every project references it without a version, so the bot can find and bump it. New packages get their version there too. See `platform`'s README, Update bot.
