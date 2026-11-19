@@ -30,7 +30,7 @@ This repo runs the disposable per-session lab of kubernetes-learning-platform, a
 - PR titles are Conventional Commits (`feat: short description`), one line, at most 72 characters, no trailing period.
 - Files are UTF-8 with LF line endings.
 - CI runs `platform`'s `dotnet-ci` (lint copies, format check, Release build) and publishes the harness as Native AOT for linux-x64 and linux-arm64. There are no tests yet.
-- `contracts-bump.yml` and `lint-sync.yml` run `platform`'s update bot on `repository_dispatch`, never on PRs. Flag a `KubernetesLearning.Contracts` reference that doesn't pin one exact version on one line, because the bot can't bump it.
+- `contracts-bump.yml` and `lint-sync.yml` run `platform`'s update bot on `repository_dispatch`, never on PRs. `KubernetesLearning.Contracts` is pinned once in `Directory.Packages.props`; flag a `Version` on a `PackageReference` or a second pin, because the bot bumps only that line. Every workflow job that restores packages grants `packages: read` and passes `GITHUB_PACKAGES_TOKEN`.
 
 ## Don't
 - Don't comment on formatting that `dotnet format` or `.editorconfig` handles.

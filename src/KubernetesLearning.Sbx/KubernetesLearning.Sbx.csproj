@@ -7,4 +7,8 @@
     <AssemblyName>sbx</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="KubernetesLearning.Contracts" />
+  </ItemGroup>
+
 </Project>

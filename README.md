@@ -45,7 +45,7 @@ A sandbox is treated as untrusted, because the learner has shell access to it. I
 
 ## envmgr's gRPC service
 
-One service, `EnvironmentManager`, on a host address that only the stack can reach (CALL). Plain HTTP/2, since `api` is on the same machine.
+One service, `EnvironmentManagerService`, on a host address that only the stack can reach (CALL). Plain HTTP/2, since `api` is on the same machine.
 
 | Method | Purpose |
 |---|---|
@@ -121,14 +121,30 @@ sandbox/
 │       └── traffic-probe/                 # tiny curl loop used by the traffic probe
 ├── KubernetesLearning.Sandbox.slnx
 ├── global.json                            # SDK 10.0
+├── nuget.config                           # nuget.org, plus GitHub Packages for KubernetesLearning.*
+├── Directory.Packages.props               # package versions, including KubernetesLearning.Contracts
 ├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
 └── .github/workflows/                     # ci.yml (platform's dotnet-ci and the harness AOT publish), contracts-bump.yml and
                                            # lint-sync.yml (the update bot); release.yml later
 ```
 
+## Packages
+
+`KubernetesLearning.Contracts` comes from GitHub Packages, which needs a token even to read a public package. `nuget.config` maps `KubernetesLearning.*` to the organization's feed and reads the token from `GITHUB_PACKAGES_TOKEN`; everything else comes from nuget.org. Once, give the GitHub CLI the `read:packages` scope, then export the token before restoring:
+
+```bash
+gh auth refresh --hostname github.com --scopes read:packages
+```
+
+```bash
+export GITHUB_PACKAGES_TOKEN="$(gh auth token)"
+```
+
+A classic personal access token with `read:packages` works too. CI passes its own `GITHUB_TOKEN`. The version is pinned once, in `Directory.Packages.props` (Central Package Management), and the projects reference the package without a version, so the update bot can bump it.
+
 ## Local development
 
-Build with `dotnet build -c Release` and check formatting with `dotnet format --verify-no-changes`. CI also publishes the harness as Native AOT for linux-x64 and linux-arm64; on a Mac, `dotnet publish src/KubernetesLearning.Harness -c Release -r osx-arm64` checks the AOT build. There are no tests yet.
+Set `GITHUB_PACKAGES_TOKEN` first (see [Packages](#packages)). Build with `dotnet build -c Release` and check formatting with `dotnet format --verify-no-changes`. CI also publishes the harness as Native AOT for linux-x64 and linux-arm64; on a Mac, `dotnet publish src/KubernetesLearning.Harness -c Release -r osx-arm64` checks the AOT build. There are no tests yet.
 
 No KVM needed. Run `envmgr` with `dotnet run` and `Provider=Docker`, plus RabbitMQ from `platform`'s dev Compose. The harness (a linux-arm64 build on Apple Silicon) runs inside a privileged DinD container and dials `envmgr` over WebSocket, exactly as it does on the course VM. The QEMU provider is tested on the course VM itself.
 

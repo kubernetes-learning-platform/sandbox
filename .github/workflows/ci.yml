@@ -10,6 +10,7 @@ jobs:
   ci:
     permissions:
       contents: read
+      packages: read
     uses: kubernetes-learning-platform/platform/.github/workflows/dotnet-ci.yml@main
 
   aot:
@@ -25,6 +26,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      packages: read
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "1"
@@ -47,6 +49,7 @@ jobs:
       - name: Publish the harness
         env:
           RID: ${{ matrix.rid }}
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
         run: dotnet publish src/KubernetesLearning.Harness --configuration Release --runtime "$RID" --output "$RUNNER_TEMP/harness"
 
       - name: Run the harness
