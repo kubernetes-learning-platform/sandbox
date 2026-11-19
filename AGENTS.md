@@ -34,6 +34,8 @@ sandbox/
 │   └── scenarios/                         # demo-web, traffic-probe
 ├── KubernetesLearning.Sandbox.slnx
 ├── global.json                            # SDK 10.0
+├── nuget.config                           # nuget.org, plus GitHub Packages for KubernetesLearning.*
+├── Directory.Packages.props               # package versions, including KubernetesLearning.Contracts
 ├── Directory.Build.props                  # copy from platform/lint, like .editorconfig; .lint-sync records the commit
 └── .github/workflows/                     # ci.yml: platform's dotnet-ci, plus the harness AOT publish;
                                            # contracts-bump.yml, lint-sync.yml: the update bot
@@ -71,7 +73,8 @@ CI (`.github/workflows/ci.yml`) reports `ci / .NET checks`, `Native AOT (linux-x
 - A tag in this repo publishes the binaries, the `SandboxClient` package and the scenario images. The sandbox template is built from the private deploy repo, because public repos can't use the self-hosted runner.
 - New `contracts` versions arrive as bot commits, `build(deps): bump contracts to X.Y.Z`, from `.github/workflows/contracts-bump.yml`, which calls `platform`'s update bot on `repository_dispatch`. The bot runs `platform`'s `dotnet-ci` on the commit before it pushes to `main`, not the Native AOT publish, which runs only on PRs. If that fails, it opens a PR here instead; fix the code in that PR.
 - New lint configs arrive the same way, as `chore: sync lint configs` from `.github/workflows/lint-sync.yml` after a change to `platform/lint/`. If the new rules break the build, the bot opens a PR instead; fix the code in that PR.
-- When you add `KubernetesLearning.Contracts`, pin one exact version on one line, preferably once in `Directory.Packages.props` with Central Package Management, so the bot can find and bump it. See `platform`'s README, Update bot.
+- `KubernetesLearning.Contracts` is pinned once, on one line in `Directory.Packages.props` (Central Package Management), and every project references it without a version, so the bot can find and bump it. New packages get their version there too. See `platform`'s README, Update bot.
+- **Restoring** needs `GITHUB_PACKAGES_TOKEN`, because GitHub Packages wants a token even for public packages: `gh auth refresh --hostname github.com --scopes read:packages` once, then `export GITHUB_PACKAGES_TOKEN="$(gh auth token)"`. `nuget.config` maps `KubernetesLearning.*` to GitHub Packages and everything else to nuget.org. CI passes its `GITHUB_TOKEN`, so every workflow job that restores grants `packages: read`.
 
 ## Commits, branches and PRs
 
