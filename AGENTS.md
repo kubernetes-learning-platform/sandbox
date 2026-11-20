@@ -28,7 +28,7 @@ sandbox/
 │   ├── KubernetesLearning.Harness/        # harness, Native AOT: Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
 │   ├── KubernetesLearning.SandboxClient/  # ISandboxSession, SandboxSession, Fakes/
 │   └── KubernetesLearning.Sbx/            # sbx, the dev CLI
-├── tests/                                 # from Milestone 1: SandboxClient, EnvManager, Harness and Integration tests
+├── tests/                                 # from Milestone 2 or 3: SandboxClient, EnvManager, Harness and Integration tests
 ├── images/
 │   ├── node/                              # the node machine: systemd, sshd, k3s
 │   ├── workstation/                       # the workstation container for the Sysbox provider

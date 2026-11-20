@@ -85,7 +85,7 @@ Every provider uses the same harness WebSocket endpoint, `Hello` handshake and o
 |---|---|---|
 | `SysboxProvider` | The team's Hetzner test VM now, and the course VM if it has no KVM | Per session: its own Docker network, `cp`, `w1` and `w2` from the node image and a workstation container from `images/workstation/`, all under Sysbox and never `--privileged`. Built first. |
 | `QemuProvider` | The course VM if it has KVM. Tested in a nested Ubuntu VM on a small home Proxmox server. | A linked clone per session: a qcow2 overlay on the template image, run by libvirt as `kl-sbx-<id>` and driven through `virsh`. A cloud-init NoCloud seed sets its IP and writes `harness.env`. The nodes run inside it, and libvirt keeps it running through `envmgr` restarts. |
-| `ProcessProvider` | Tests and quick local runs | The harness as a plain process, with no nodes |
+| `ProcessProvider` | Quick local runs, and tests later | The harness as a plain process, with no nodes |
 
 Which one the course VM runs depends on nested virtualization (OPEN until platform#6).
 
@@ -111,7 +111,7 @@ sandbox/
 │   ├── KubernetesLearning.Harness/        # harness, Native AOT: Transport/, Handlers/, Faults/, Watch/, Topology/, Traffic/, Native/
 │   ├── KubernetesLearning.SandboxClient/  # ISandboxSession, SandboxSession, Fakes/
 │   └── KubernetesLearning.Sbx/            # sbx, the dev CLI
-├── tests/                                 # from Milestone 1
+├── tests/                                 # from Milestone 2 or 3
 │   ├── SandboxClient.Tests/
 │   ├── EnvManager.Tests/
 │   ├── Harness.Tests/
